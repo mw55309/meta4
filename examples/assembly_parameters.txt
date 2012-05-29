@@ -1,0 +1,4 @@
+kmer	-k	51
+discard links	-D	19
+discard kmers	-d	1
+software	name	SOAPdenovo
