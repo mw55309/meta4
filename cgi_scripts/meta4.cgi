@@ -155,11 +155,14 @@ if ($mr) {
 $sth = $dbh->prepare($sql);
 $sth->execute;
 
+my $rcount = 0;
+
 $tbl->addRow(@{$sth->{NAME}});
 $tbl->setRowHead(1);
 while(my(@array) = $sth->fetchrow_array) {
 	$array[1] = "<a href=\"/cgi-bin/gene_pred.cgi?aid=$aid&gid=$array[1]\" target=\"_blank\">$array[1]</a>";
 	$tbl->addRow(@array);
+	$rcount++;
 }
 $sth->finish;
 $dbh->disconnect
@@ -168,7 +171,9 @@ $dbh->disconnect
 $tbl->setAlign('center');
 
 if ($mr) {
-	print "<p>Results limited to first $mr; there may be more</p>";
+	if ($rcount == $mr) {
+		print "<p>Results limited to first $mr; there may be more</p>";
+	}
 }
 $tbl->print;
 print $q->end_html();
