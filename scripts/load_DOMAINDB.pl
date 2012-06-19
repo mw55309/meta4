@@ -4,6 +4,11 @@ use strict;
 use DBI;
 use Getopt::Long;
 
+use File::Basename;
+use lib dirname(__FILE__);
+
+require META4DB;
+
 unless (@ARGV) {
 	print "USAGE: perl load_DOMAINDB.pl --name <domain DB name> --version <domain DB version> --file <domain DB file> --desc <domain DB description>\n\n";
 	print "Domain DB name is required\n";
@@ -31,7 +36,7 @@ unless (defined $version) {
 	exit;
 }
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 my $query = "INSERT INTO domain_db(domain_db_name, domain_db_version, domain_db_file, domain_db_description) values('$name','$version','$file','$desc')";
 $dbh->do($query) || die "Could not execute '$query': $DBI::errstr\n";
 

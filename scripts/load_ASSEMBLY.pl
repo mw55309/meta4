@@ -3,6 +3,10 @@
 use strict;
 use DBI;
 use Getopt::Long;
+use File::Basename;
+use lib dirname(__FILE__);
+
+require META4DB;
 
 unless (@ARGV) {
 	print "USAGE: perl load_ASSEMBLY.pl --sample_id <sample id> --assembly_params <params file> --desc <assembly description>\n\n";
@@ -17,9 +21,8 @@ my $sample_id = undef;
 my $assembly_params = undef;
 my $desc = undef;
 
-#GetOptions('sample_id=i' => \$sample_id, 'desc=s' => \$desc, 'params=s' => \$assembly_params);
 GetOptions('sample_id=i' => \$sample_id, 'desc=s' => \$desc, 'assembly_params=s' => \$assembly_params);
-#exit;
+
 unless (defined $sample_id) {
 	warn "Must provide a sample_id\n";
 	exit;
@@ -30,7 +33,7 @@ unless (defined $assembly_params && -f $assembly_params) {
 	exit;
 }
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 my $query = "INSERT INTO assembly(sample_id, assembly_description) values('$sample_id','$desc')";
 $dbh->do($query) || die "Could not execute '$query': $DBI::errstr\n";
 

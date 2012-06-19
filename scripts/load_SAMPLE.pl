@@ -3,6 +3,10 @@
 use strict;
 use DBI;
 use Getopt::Long;
+use File::Basename;
+use lib dirname(__FILE__);
+
+require META4DB;
 
 unless (@ARGV) {
 	print "USAGE: perl load_SAMPLE.pl --name <sample name> --desc <sample description>\n\n";
@@ -22,7 +26,7 @@ unless (defined $name) {
 	exit;
 }
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 my $query = "INSERT INTO sample(sample_name, sample_description) values('$name','$desc')";
 $dbh->do($query) || die "Could not execute '$query': $DBI::errstr\n";
 

@@ -5,6 +5,11 @@ use DBI;
 use Getopt::Long;
 use Bio::SeqIO;
 
+use File::Basename;
+use lib dirname(__FILE__);
+
+require META4DB;
+
 unless (@ARGV) {
 	print "USAGE: perl load_CONTIG.pl --assembly_id <assembly id> --file <fasta file of sequences>\n\n";
 	print "Assembly id is required and should be a unique ID from the sample table\n";
@@ -23,8 +28,9 @@ unless (defined $assembly_id  && defined $file && -f $file) {
 	exit;
 }
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 
+my $seqcount = 0;
 my $in = Bio::SeqIO->new(-file => $file, -format => 'fasta');
 while(my $seq = $in->next_seq()) {
 
@@ -34,9 +40,11 @@ while(my $seq = $in->next_seq()) {
 
 	my $query = "INSERT INTO contig(assembly_id, contig_name, contig_desc, contig_length) values($assembly_id,'$name','$desc',$len)";
 	$dbh->do($query) || die "Could not execute '$query': $DBI::errstr\n";
-
+	$seqcount++;
 }
 
 $dbh->disconnect
     or warn "Disconnection failed: $DBI::errstr\n";
+
+print "Inserted $seqcount contigs\n";
  

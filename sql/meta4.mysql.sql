@@ -27,6 +27,9 @@ CREATE TABLE contig (
 CREATE TABLE gene_prediction (
 	gene_prediction_id int(10) UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
 	contig_id int(9) NOT NULL,
+	contig_start int(9) UNSIGNED NOT NULL,
+	contig_end int(9) UNSIGNED NOT NULL,
+	contig_strand varchar(1) NOT NULL,
 	gene_name varchar(255) NOT NULL,
 	gene_description TEXT,
 	gene_length int(5) UNSIGNED NOT NULL,

@@ -7,13 +7,14 @@ use Bio::Graphics;
 use Bio::SeqIO;
 use Bio::SeqFeature::Generic;
 
+require META4DB;
+
 # get information from the database;
 my $query = new CGI;
 my $aid = $query->param("aid");
 my $gid = $query->param("gid");
-#my $aid = 1;
-#my $gid = "CDS_1";
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 my $sql = "select gp.gene_name, gp.protein_length, d.domain_accession, d.domain_name, dm.aln_start, dm.aln_end, ddb.domain_db_id, ddb.domain_db_name, ddb.domain_db_version
 	   from gene_prediction gp, domain_match dm, domain d, domain_db ddb, contig c
 	   where gp.contig_id = c.contig_id and gp.gene_prediction_id = dm.gene_prediction_id and dm.domain_id = d.domain_id and d.domain_db_id = ddb.domain_db_id

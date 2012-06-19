@@ -1,2 +1,88 @@
-Meta4 is a simple DB schema for Metagenomics
+Meta4 is a simple DB schema for Metagenomic protein domain annotations
 
+Meta4 was developed and tested on an Amazon EC2 micro instance of a CloudBioLinux image.  It should work on any standard LAMP server.  It has not been tested on Windows or MacOS.
+
+Requirements:
+Apache
+MySQL
+Perl
+
+Perl Modules:
+BioPerl
+IO::String
+HTML::Table
+DBI
+Getopt::Long
+Bio::Graphics
+GD
+File::Basename
+
+INSTALLATION OF EXAMPLE DATBASE:
+
+1) download and unzip/untar the archive from github or clone the repository from https://github.com/mw55309/meta4
+
+2) create a MySQL database and read/write accounts
+
+	# command prompt
+	mysqladmin -u root -p create meta4
+
+	# within MySQL
+	grant all on meta4.* to 'writeaccount'@'localhost' identified by 'writepass';
+	grant select on meta4.* to 'readaccount'@'localhost' identified by 'readpass';
+
+3) create the database structure
+
+	# command prompt
+	mysql -u root -p meta4 < sql/meta4.mysql.sql
+
+4) edit the file scripts/META4DB.pm and enter the account details for the write account
+
+5) load information information into the database
+
+	# command prompt
+	# load sample
+	perl scripts/load_SAMPLE.pl --name 'A test sample' --desc 'A completely made up sample from the dragon gut microbiome'
+	# Output: Inserted sample with id: 5
+
+	# load assembly
+	perl scripts/load_ASSEMBLY.pl --sample_id 5 --assembly_params examples/assembly_parameters.txt --desc 'SOAPdenovo assembly'
+	# Output: Inserted assembly with id: 6
+
+	# load contigs.  Identifiers in fasta file should be unique within the assembly
+	perl scripts/load_CONTIG.pl --assembly_id 6 --file examples/contigs.fasta
+	# Output: Inserted 4 contigs
+	
+	# load gene predictions.  
+	# Three files are required:
+	#	- gff/gtf file of gene locations.  First column should contain a sequence identifier from a contig (above). Second and third columns are ignored
+	#					   Fourth, Fifth and seventh columns are start, end and strand (+/-) of the gene respectively.  All other columns
+	#					   of the GFF/GTF are ignored.
+	#	- nucleotide fasta file.	   FASTA file of nucleotide sequences.  Same order as the GFF/GTF file.
+	#	- proteins fasta file.	   	   FASTA file of protein sequences.  Same order as the GFF/GTF file.
+	perl scripts/load_PREDICTIONS.pl --assembly_id 6 --gff examples/predictions.gff --nucfile examples/nucs_out.fasta --profile examples/prots_out.fasta
+	# Output: Inserted 698 gene predictions
+
+	# load domain database
+	perl scripts/load_DOMAINDB.pl --name Pfam-A --version 26.0 --file Pfam-A.hmm --desc 'Pfam-A version 26.0'
+	# Output: Inserted domain DB with id: 1
+
+	# load domains
+	# A file of domains is required.  Text file, tab-delimited, four columns (no title)
+	# First column: accession number; second column: domain name; third column: domain length; fourth column: domain description
+	perl scripts/load_DOMAINS.pl --domain_db_id 1 --file examples/domains_hit.txt
+	# Output: Inserted 757 domains
+
+	# load hits from a pfam_scan.pl results file
+	# It is assumed that: i) the query identifier is the same as the ID in the gene prediction fasta files; and ii) the hit identifier is the accession from the domain database
+	# The script loads domains from the given domain database, and gene predictions from the given assembly
+	perl scripts/load_PFAMSCAN.pl --domain_db_id 1 --assembly_id 1 --file examples/pfam_scan.out
+	# Output: Inserted 1633 domain matches
+	
+6) edit the file cgi_scripts/META4DB.pm and enter the account details for the read account
+
+7) copy the entire contents of cgi_scripts/ to your cgi-bin and make them readable and executable by your apache user. 
+
+8) Navigate to http://www.yourservername.com/cgi-bin/mate4.cgi
+
+Bugs to mick.watson@roslin.ed.ac.uk
+Get involved and contribute!

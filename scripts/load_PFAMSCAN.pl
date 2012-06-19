@@ -4,6 +4,11 @@ use strict;
 use DBI;
 use Getopt::Long;
 
+use File::Basename;
+use lib dirname(__FILE__);
+
+require META4DB;
+
 unless (@ARGV) {
 	print "USAGE: perl load_PFAMSCAN.pl --domain_db_id <Domain DB ID> --assembly_id <Assembly ID> --file <Output from Pfam scan>\n\n";
 	print "Domain DB ID is required and should be unique\n";
@@ -34,7 +39,7 @@ unless (defined $aid) {
 	exit;
 }
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 
 # get domains so far
 my %dmap;
@@ -55,6 +60,8 @@ while(my($gid,$name) = $sth->fetchrow_array) {
 	$gmap{$name} = $gid;
 }
 $sth->finish;
+
+my $dhit = 0;
 
 open(IN, $file) || die "Cannot open $file\n";
 while(<IN>) {
@@ -80,9 +87,12 @@ while(<IN>) {
 	my $query = "INSERT INTO domain_match(domain_id, gene_prediction_id, aln_start, aln_end, domain_start, domain_end, e_value, bit_score) values($did,$gid,$data[1],$data[2],$data[8], $data[9],$data[12], $data[11])";
 	$dbh->do($query) || die "Could not execute '$query': $DBI::errstr\n";
 
+	$dhit++;
 }
 close IN;
 
 $dbh->disconnect
     or warn "Disconnection failed: $DBI::errstr\n";
+
+print "Inserted $dhit domain matches\n";
  

@@ -4,6 +4,9 @@ use CGI;
 use DBI;
 use HTML::Table;
 
+require META4DB;
+
+
 my $q = new CGI;
 print $q->header, "\n";
 
@@ -38,6 +41,16 @@ padding-bottom:4px;
 background-color:#336699;
 color:#ffffff;
 }
+H1 {
+font-size:24px;
+font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
+color:#336699;
+}
+p {
+font-size:8pt;
+font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
+color:#336699;
+}
 ";
 
 my $bodyform = 'changeList(document.forms[' . "'meta4'" . '].sample_id)';
@@ -45,7 +58,7 @@ print $q->start_html(-title => "Meta4",
 		     -style=>{'code'=>$css},
 		     -onload=>"$bodyform");
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 
 unless ($q->param("sample_id")) {
 	&show_form;
@@ -91,6 +104,11 @@ if ($q->param("desc")) {
 	push(@caveats, "lower(d.domain_description) like '\%$desc\%'");
 }
 
+my $mr = 0;
+if ($q->param("max_results")) {
+	$mr = $q->param("max_results");
+}
+
 my $tbl = new HTML::Table(-align=>'center', -class=>'result');
 
 my $sql = "select  s.sample_name,"
@@ -130,13 +148,17 @@ where   s.sample_id = a.sample_id
 
 $sql .= " and " . join(" and ", @caveats);
 
+if ($mr) {
+	$sql .= " limit $mr";
+}
+
 $sth = $dbh->prepare($sql);
 $sth->execute;
 
 $tbl->addRow(@{$sth->{NAME}});
 $tbl->setRowHead(1);
 while(my(@array) = $sth->fetchrow_array) {
-	$array[1] = "<a href=\"/cgi-bin/gene_pred.cgi?aid=$aid&gid=$array[1]\">$array[1]</a>";
+	$array[1] = "<a href=\"/cgi-bin/gene_pred.cgi?aid=$aid&gid=$array[1]\" target=\"_blank\">$array[1]</a>";
 	$tbl->addRow(@array);
 }
 $sth->finish;
@@ -145,6 +167,9 @@ $dbh->disconnect
 
 $tbl->setAlign('center');
 
+if ($mr) {
+	print "<p>Results limited to first $mr; there may be more</p>";
+}
 $tbl->print;
 print $q->end_html();
 
@@ -153,6 +178,7 @@ sub show_form {
 
 	&print_js;
 
+	print "<h1>Query Meta4 database</h1>\n";
 	print "<form name =\"meta4\" action=\"meta4.cgi\" method=\"post\">\n";
 
 	my $f = new HTML::Table(-class => 'form');
@@ -178,6 +204,7 @@ sub show_form {
 	$f->setCell(1,5,"Description");
 	$f->setCell(1,6,"Min Length");
 	$f->setCell(1,7,"Max Length");
+	$f->setCell(1,8,"Max Results");
 
 	$f->setRowHead(1);
 
@@ -192,6 +219,7 @@ sub show_form {
 	my $des_html = "<input type=text size=5 value='' name=desc>\n";
 	my $min_html = "<input type=text size=5 value=0 name=min_length>\n";
 	my $max_html = "<input type=text size=5 value=0 name=max_length>\n";
+	my $max_results = "<input type=text size=5 value=100 name=max_results>\n";
 
 	$f->setCell(2,1,$sam_html);
 	$f->setCell(2,2,$ass_html);
@@ -200,6 +228,7 @@ sub show_form {
 	$f->setCell(2,5,$des_html);
 	$f->setCell(2,6,$min_html);
 	$f->setCell(2,7,$max_html);
+	$f->setCell(2,8,$max_results);
 
 	$f->print;
 

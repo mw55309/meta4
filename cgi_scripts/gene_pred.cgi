@@ -7,6 +7,8 @@ use Bio::Seq;
 use Bio::SeqIO;
 use IO::String;
 
+require META4DB;
+
 my $q = new CGI;
 print $q->header, "\n";
 
@@ -53,14 +55,12 @@ color:#ffffff;
 print $q->start_html(-title => "Meta4",
 		     -style=>{'code'=>$css});
 
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 
 my $query = new CGI;
 my $aid = $query->param("aid");
 my $gid = $query->param("gid");
-#my $aid = 1;
-#my $gid = "CDS_1";
-my $dbh = DBI->connect('DBI:mysql:meta4','root','mysqlroot') || die "Could not connect to database: $DBI::errstr";
+
 my $sql = "select gp.gene_name, gp.gene_description, gp.gene_length, gp.protein_length,  gp.dna_sequence, gp.protein_sequence 
 	   from gene_prediction gp, contig c
 	   where gp.contig_id = c.contig_id and c.assembly_id = $aid and gp.gene_name = '$gid'";
