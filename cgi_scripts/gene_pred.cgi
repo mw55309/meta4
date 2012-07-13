@@ -96,6 +96,7 @@ $tbl->setCell(4,1,"Protein Length");
 $tbl->setCell(5,1,"Domains");
 $tbl->setCell(6,1,"DNA Sequence");
 $tbl->setCell(7,1,"Prot Sequence");
+$tbl->setCell(8,1,"BLAST hits");
 
 $tbl->setCell(1,2,$data[0]);
 $tbl->setCell(2,2,$data[1]);
@@ -104,6 +105,7 @@ $tbl->setCell(4,2,$data[3]);
 $tbl->setCell(5,2,"<img src=\"/cgi-bin/show_domains.cgi?aid=$aid&gid=$gid\">");
 $tbl->setCell(6,2,"<pre>$dna_formatted</pre>");
 $tbl->setCell(7,2,"<pre>$prot_formatted</pre>");
+$tbl->setCell(8,2,"<object frameborder=0 width=100\% standby=\"loading\" data=\"/cgi-bin/metablast.cgi?aid=$aid&gid=$gid\"></object>");
 
 $tbl->setColHead(1);
 
