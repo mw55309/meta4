@@ -40,6 +40,9 @@ open(IN, $file) || die "Cannot open $file\n";
 while(<IN>) {
 	s/\n|\r//g;
 	my($accn,$name,$len,$desc) = split(/\t/);
+	$name =~ s/\'/prime /g;
+	$desc =~ s/\'/prime /g;
+	
 	my $query = "INSERT INTO domain(domain_db_id, domain_accession, domain_name, domain_length, domain_description) values($ddbid,'$accn','$name',$len,'$desc')";
 	$dbh->do($query) || die "Could not execute '$query': $DBI::errstr\n";
 	$dcount++;

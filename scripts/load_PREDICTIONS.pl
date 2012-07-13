@@ -68,7 +68,13 @@ while(<GFF>) {
 	next if (m/^#/);
 	my @data = split(/\t/, $_);
 
-	my $cid = $cmap{$data[0]};
+	my $cid;
+	if (exists $cmap{$data[0]}) {
+		$cid = $cmap{$data[0]};
+	} else {
+		warn "Cannot map $data[0]\n";
+		next;
+	}
 
 	my $start = $data[3];
 	my $end   = $data[4];
