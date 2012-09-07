@@ -97,6 +97,7 @@ $tbl->setCell(5,1,"Domains");
 $tbl->setCell(6,1,"DNA Sequence");
 $tbl->setCell(7,1,"Prot Sequence");
 $tbl->setCell(8,1,"BLAST hits");
+$tbl->setCell(9,1,"InterProScan hits");
 
 $tbl->setCell(1,2,$data[0]);
 $tbl->setCell(2,2,$data[1]);
@@ -105,9 +106,21 @@ $tbl->setCell(4,2,$data[3]);
 $tbl->setCell(5,2,"<img src=\"/cgi-bin/show_domains.cgi?aid=$aid&gid=$gid\">");
 $tbl->setCell(6,2,"<pre>$dna_formatted</pre>");
 $tbl->setCell(7,2,"<pre>$prot_formatted</pre>");
-$tbl->setCell(8,2,"<object frameborder=0 width=100\% standby=\"loading\" data=\"/cgi-bin/metablast.cgi?aid=$aid&gid=$gid\"></object>");
+$tbl->setCell(8,2,"<p id=\"loader1\">Blast results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=100px width=100\% src=\"/cgi-bin/metablast.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader1')\"></iframe>");
+$tbl->setCell(9,2,"<p id=\"loader2\">InterProScan results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=400px width=955px src=\"/cgi-bin/meta4ipr.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader2')\"></iframe>");
 
 $tbl->setColHead(1);
+
+$tbl->setColWidth(1,"100px");
+
+print <<SCRIPT;
+<script type="text/javascript">
+function hideProgress(eid){
+        document.getElementById(eid).style.display = 'none';
+}
+</script>
+SCRIPT
+
 
 $tbl->print;
 

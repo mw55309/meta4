@@ -44,10 +44,8 @@ print $q->start_html(-title => "Meta4blast", -style=>{'code'=>$css});
 
 my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 
-my $query = new CGI;
-my $aid = $query->param("aid");
-my $gid = $query->param("gid");
-my $check = $query->param("check");
+my $aid = $q->param("aid");
+my $gid = $q->param("gid");
 
 my $sql = "select gp.gene_name, gp.gene_description, gp.protein_sequence
            from gene_prediction gp, contig c
@@ -60,9 +58,6 @@ my @data = $sth->fetchrow_array;
 
 # WSDL URL for service
 my $WSDL = 'http://www.ebi.ac.uk/Tools/services/soap/wublast?wsdl';
-
-# Set interval for checking status
-my $checkInterval = 3;
 
 # For a document/literal service which has types with repeating elements
 # namespace and endpoint need to be used instead of the WSDL.
@@ -120,7 +115,7 @@ $tbl->print;
 
 $sth->finish;
 $dbh->disconnect;
-$query->end_html;
+$q->end_html;
 
 
 sub soap_get_result {
