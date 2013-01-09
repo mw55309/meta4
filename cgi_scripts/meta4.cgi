@@ -16,14 +16,14 @@ table.result
 font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
 width:100%;
 border-collapse:collapse;
-table-layout: fixed;
+<!-- table-layout: fixed; -->
 }
 table.form
 {
 font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
 width:50%%;
 border-collapse:collapse;
-table-layout: fixed;
+<!-- table-layout: fixed; -->
 }
 td, th 
 {
