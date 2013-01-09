@@ -21,8 +21,8 @@ border-collapse:collapse;
 table.form
 {
 font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-width:50%%;
-border-collapse:collapse;
+width:50%;
+border-collapse: collapse;
 <!-- table-layout: fixed; -->
 }
 td, th 
@@ -184,6 +184,9 @@ sub show_form {
 	&print_js;
 
 	print "<h1>Query Meta4 database</h1>\n";
+	# print out the help
+	while(<DATA>) {print;}
+
 	print "<form name =\"meta4\" action=\"meta4.cgi\" method=\"post\">\n";
 
 	my $f = new HTML::Table(-class => 'form');
@@ -315,3 +318,17 @@ function changeList( box ) {
 </script>
 ENDOFJS
 }
+
+
+__DATA__
+<table class="form">
+<tr>
+<td>
+<p>Meta4 allows users to query metagenomic datasets using a simple web interface.&nbsp; Here we present an assembly and annotation of the data from:</p><ol><li>
+<pre>
+Hess M et al (2011) Metagenomic discovery of biomass-degrading genes and genomes from cow rumen. <em>Science </em><strong>331(6016)</strong>:463-7</pre>
+</li></ol><p>Users can query predicted genes/proteins based on their Pfam domains (Accession; Name; Description) and minimum and maximum length gene length (Min Length; Max Length).&nbsp; By default, the first 100 records will be returned.&nbsp; Please alter &quot;Max Results&quot; to change this (set it to 0 to return everything).</p><p>As an example, enter <em>Glyco_hydro</em> into the Name field and click <strong>Submit</strong></p>
+</td>
+</tr>
+</table>
+<br/>
