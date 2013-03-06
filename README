@@ -1,3 +1,6 @@
+Meta4: version 0.1
+-------------------
+
 Meta4 is a simple DB schema for Metagenomic protein domain annotations
 
 Meta4 was developed and tested on an Amazon EC2 micro instance of a CloudBioLinux image.  It should work on any standard LAMP server.  It has not been tested on Windows or MacOS.
