@@ -9,34 +9,10 @@ use HTML::Table;
 
 require META4DB;
 
-my $css = "
-table.result
-{
-font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-border-collapse:collapse;
-<!-- table-layout: fixed; -->
-}
-td, th
-{
-font-size:8pt;
-border:1px solid #98bf21;
-padding:3px 7px 2px 7px;
-word-wrap:break-word;
-}
-th
-{
-font-size:8pt;
-text-align:left;
-padding-top:5px;
-padding-bottom:4px;
-background-color:#336699;
-color:#ffffff;
-}";
-
 my $q = new CGI;
 print $q->header, "\n";
 
-print $q->start_html(-title => "Meta4ipr", -style=>{'code'=>$css});
+print $q->start_html(-title => "Meta4ipr", -style=>{'code'=>$META4DB::css});
 
 # get information from the database
 my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";

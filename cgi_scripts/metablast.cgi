@@ -12,35 +12,10 @@ use MIME::Base64;
 use Bio::SearchIO;
 
 require META4DB;
-
-my $css = "
-table.result
-{
-font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-border-collapse:collapse;
-<!-- table-layout: fixed; -->
-}
-td, th
-{
-font-size:8pt;
-border:1px solid #98bf21;
-padding:3px 7px 2px 7px;
-word-wrap:break-word;
-}
-th
-{
-font-size:8pt;
-text-align:left;
-padding-top:5px;
-padding-bottom:4px;
-background-color:#336699;
-color:#ffffff;
-}";
-
 my $q = new CGI;
 print $q->header, "\n";
 
-print $q->start_html(-title => "Meta4blast", -style=>{'code'=>$css});
+print $q->start_html(-title => "Meta4blast", -style=>{'code'=>$META4DB::css});
 
 my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";
 
@@ -74,7 +49,7 @@ $tool_params{'program'} = 'blastp';
 $tool_params{'stype'} = 'protein';
 $tool_params{'sequence'} = ">$data[0] $data[1]\n$data[2]\n";
 $params{'email'} = 'test@server.com';
-$params{'database'} = 'uniprotkb_swissprot';
+$params{'database'} = 'uniprotkb_trembl';
 $params{'title'} = '$data[0]';
 
 
@@ -101,15 +76,18 @@ my $result = soap_get_result( $jobid, "out");
 my $fh = IO::String->new($result);
 my $in = Bio::SearchIO->new(-fh => $fh, -format => 'blast');
 
-my $tbl = new HTML::Table(-align=>'center', -class=>'result');
+my $tbl = new HTML::Table(-class=>'gene');
+$tbl->addRow(("Hit","Description","Query Length","Hit Length","E value"));
 
 while( my $result = $in->next_result ) {
   while( my $hit = $result->next_hit ) {
 	my $name = $hit->name;
 	$name =~ s/\S+:(\S+)/<a target="_blank" href="http:\/\/www.uniprot.org\/uniprot\/$1">$1<\/a>/;
-	$tbl->addRow($name, $hit->description, $hit->significance);
+	$tbl->addRow($name, $hit->description, $result->query_length, $hit->length, $hit->significance);
   }
 }
+
+$tbl->setRowHead(1);
 
 $tbl->print;
 

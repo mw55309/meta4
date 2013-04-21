@@ -10,52 +10,9 @@ require META4DB;
 my $q = new CGI;
 print $q->header, "\n";
 
-my $css = "
-table.result
-{
-font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-width:100%;
-border-collapse:collapse;
-<!-- table-layout: fixed; -->
-}
-table.form
-{
-font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-width:50%;
-border-collapse: collapse;
-<!-- table-layout: fixed; -->
-}
-td, th 
-{
-font-size:8pt;
-border:1px solid #98bf21;
-padding:3px 7px 2px 7px;
-word-wrap:break-word;
-}
-th 
-{
-font-size:8pt;
-text-align:left;
-padding-top:5px;
-padding-bottom:4px;
-background-color:#336699;
-color:#ffffff;
-}
-H1 {
-font-size:24px;
-font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-color:#336699;
-}
-p {
-font-size:8pt;
-font-family:\"Trebuchet MS\", Arial, Helvetica, sans-serif;
-color:#336699;
-}
-";
-
 my $bodyform = 'changeList(document.forms[' . "'meta4'" . '].sample_id)';
 print $q->start_html(-title => "Meta4",
-		     -style=>{'code'=>$css},
+		     -style=>{'code'=>$META4DB::css},
 		     -onload=>"$bodyform");
 
 my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4DB::dbpass) || die "Could not connect to database: $DBI::errstr";

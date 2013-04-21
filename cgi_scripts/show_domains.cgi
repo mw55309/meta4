@@ -18,7 +18,7 @@ my $dbh = DBI->connect('DBI:mysql:' . $META4DB::dbname, $META4DB::dbuser, $META4
 my $sql = "select gp.gene_name, gp.protein_length, d.domain_accession, d.domain_name, dm.aln_start, dm.aln_end, ddb.domain_db_id, ddb.domain_db_name, ddb.domain_db_version
 	   from gene_prediction gp, domain_match dm, domain d, domain_db ddb, contig c
 	   where gp.contig_id = c.contig_id and gp.gene_prediction_id = dm.gene_prediction_id and dm.domain_id = d.domain_id and d.domain_db_id = ddb.domain_db_id
-	     and c.assembly_id = $aid and gp.gene_name = '$gid'";
+	     and c.assembly_id = $aid and gp.gene_name = '$gid' order by dm.e_value";
 
 
 $sth = $dbh->prepare($sql);
