@@ -71,8 +71,8 @@ $tbl->setCell(6,2,"<img src=\"/cgi-bin/show_domains.cgi?aid=$aid&gid=$gid\">");
 $tbl->setCell(7,2,"<pre>$dna_formatted</pre>");
 $tbl->setCell(8,2,"<pre>$prot_formatted</pre>");
 $tbl->setCell(9,2,"<p id=\"loader4\">Uniprot results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=200px width=100\% src=\"/cgi-bin/uniprot_simple.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader4')\"></iframe>");
-$tbl->setCell(10,2,"<p id=\"loader2\">Blast results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=100px width=100\% src=\"/cgi-bin/metablast.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader1')\"></iframe>");
-$tbl->setCell(11,2,"<p id=\"loader3\">InterProScan results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=400px width=955px src=\"/cgi-bin/meta4ipr.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader2')\"></iframe>");
+$tbl->setCell(10,2,"<p id=\"loader2\">Blast results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=100px width=100\% src=\"/cgi-bin/metablast.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader2')\"></iframe>");
+$tbl->setCell(11,2,"<p id=\"loader3\">InterProScan results loading.  Please wait....</p>\n<iframe frameborder=\"0\" height=400px width=955px src=\"/cgi-bin/meta4ipr.cgi?aid=$aid&gid=$gid\" onload=\"hideProgress('loader3')\"></iframe>");
 
 $tbl->setColHead(1);
 
