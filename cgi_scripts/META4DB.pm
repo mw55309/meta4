@@ -1,8 +1,13 @@
 package META4DB;
 
+# datbase credentials
 $dbname = "meta42";
 $dbuser = "readaccount";
 $dbpass = "readpass";
+
+# CSS for all web scripts
+# best not to edit unless you know what you're
+# doing
 $css= "
 table.result
 {
