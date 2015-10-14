@@ -4,16 +4,12 @@
 #
 # This script borrows heavily from the EBI script here:
 #
-# http://www.ebi.ac.uk/Tools/webservices/download_clients/perl/soaplite/wublast_soaplite.pl
+# http://www.ebi.ac.uk/Tools/webservices/download_clients/perl/lwp/ncbiblast_lwp.pl
 #
 # we have taken out some uneccesary code, but plenty remains
 # in and can be credited to EBI
 #
 ##################################################################################################
-
-# this script extracts sequence from the Meta4 database and
-# uses the EBI weblast web-service to search for homologous 
-# sequences.  The results are returned as a table
 
 use CGI;
 use DBI;
@@ -21,10 +17,13 @@ use HTML::Table;
 use Bio::Seq;
 use Bio::SeqIO;
 use IO::String;
-use SOAP::Lite;
-use CGI;
 use MIME::Base64;
 use Bio::SearchIO;
+use English;
+use LWP;
+use XML::Simple;
+use File::Basename;
+use Data::Dumper;
 
 # get the database credentials
 require META4DB;
@@ -51,53 +50,53 @@ $sth->execute;
 # get entire result set as an array
 my @data = $sth->fetchrow_array;
 
-# WSDL URL for service
-my $WSDL = 'http://www.ebi.ac.uk/Tools/services/soap/wublast?wsdl';
+# Base URL for service
+my $baseUrl = 'http://www.ebi.ac.uk/Tools/services/rest/ncbiblast';
 
-# set the endpoint and name space for the service
-my $serviceEndpoint = "http://www.ebi.ac.uk/Tools/services/soap/wublast";
-my $serviceNamespace = "http://soap.jdispatcher.ebi.ac.uk";
+# Set interval for checking status
+my $checkInterval = 3;
 
-# Create a service proxy from the WSDL. 
-my $soap = SOAP::Lite->proxy($serviceEndpoint,	timeout => 6000)->uri($serviceNamespace);
+# Set maximum number of 'ERROR' status calls to call job failed.
+my $maxErrorStatusCount = 3;
 
-# Default parameter values 
+# Output level
+my $outputLevel = 1;
+
+# Process command-line options
+my $numOpts = scalar(@ARGV);
+my %params = ( 
+	'debugLevel' => 0, 
+	'maxJobs'    => 1
+);
+
+# set up parameters for the REST service
 my %tool_params = ();
-my %params = ();
+$tool_params{'program'} = 'blastp';                            # protein blast
+$tool_params{'stype'} = 'protein';                             # protein sequences
+$tool_params{'sequence'} = ">$data[0] $data[1]\n$data[2]\n";   # the fasta formatted sequence
+$tool_params{'email'} = 'you@server.com';                      # dummy e-mail: should change
+$tool_params{'database'} = 'uniprotkb_trembl';                 # search uniprot trembl
+$tool_params{'title'} = $data[0];                              # use gene name as the title
 
-# set blast parameters
-$tool_params{'program'} = 'blastp';                                 # protein blast
-$tool_params{'stype'} = 'protein';                                  # protein sequences
-$tool_params{'sequence'} = ">$data[0] $data[1]\n$data[2]\n";        # the fasta formatted sequence
+# set scriptname
+my $scriptName = "metablast.cgi";
 
-# set other parameters
-$params{'email'} = 'test@server.com';                               # dummy e-mail: should change
-$params{'database'} = 'uniprotkb_trembl';                           # search uniprot trembl
-$params{'title'} = '$data[0]';                                      # use gene name as the title
+# LWP UserAgent for making HTTP calls (initialised when required).
+my $ua;
 
-# load a list of all possible databases
-my (@dbList) = split /[ ,]/, $params{'database'};
-	for ( my $i = 0 ; $i < scalar(@dbList) ; $i++ ) {
-		$tool_params{'database'}[$i] =
-		  SOAP::Data->type( 'string' => $dbList[$i] )->name('string');
-	}
+# Seq ID
+my $seq_id = $data[0];
 
-# run the job
-my $jobid = &soap_run( $params{'email'}, $params{'title'}, \%tool_params );
+# run rest
+my $jobid = &rest_run( $tool_params{'email'}, $tool_params{'title'}, \%tool_params);
 
-# wait
-sleep 1;
+select( undef, undef, undef, 0.5 );     # 0.5 second sleep.
 
-# poll the job status
-my $jobStatus = 'PENDING';
-while ( $jobStatus eq 'PENDING' || $jobStatus eq 'RUNNING' ) {
-	sleep 5;    # Wait 5sec
-	$jobStatus = soap_get_status($jobid);	
-}
+# Check status, and wait if not finished
+&client_poll($jobid);
 
-# if we get to here, the job has finished
-# get the result
-my $result = soap_get_result( $jobid, "out");
+# get result object
+my $result = rest_get_result( $jobid, "out");
 
 # create dummy filehandle using the text-output
 # from the service and IO::String
@@ -109,7 +108,6 @@ my $in = Bio::SearchIO->new(-fh => $fh, -format => 'blast');
 # create a table to store the output
 my $tbl = new HTML::Table(-class=>'gene');
 $tbl->addRow(("Hit","Description","Query Length","Hit Length","E value"));
-$tbl->setRowHead(1);
 
 # iterate over the BLAST results
 while( my $result = $in->next_result ) {
@@ -119,7 +117,7 @@ while( my $result = $in->next_result ) {
 	$tbl->addRow($name, $hit->description, $result->query_length, $hit->length, $hit->significance);
   }
 }
-
+$tbl->setRowHead(1);
 $tbl->print;
 
 $sth->finish;
@@ -127,57 +125,162 @@ $dbh->disconnect;
 $q->end_html;
 
 
-sub soap_get_result {
-	my $jobid = shift;
-	my $type  = shift;
-	my $res = $soap->getResult(
-		SOAP::Data->name( 'jobId' => $jobid )->attr( { 'xmlns' => '' } ),
-		SOAP::Data->name( 'type'  => $type )->attr(  { 'xmlns' => '' } )
-	);
-	my $result = decode_base64( $res->valueof('//output') );
-	return $result;
+sub client_poll {
+	my $jobid  = shift;
+	my $status = 'PENDING';
+
+	# Check status and wait if not finished. Terminate if three attempts get "ERROR".
+	my $errorCount = 0;
+	while ($status eq 'RUNNING'
+		|| $status eq 'PENDING'
+		|| ( $status eq 'ERROR' && $errorCount < $maxErrorStatusCount ) )
+	{
+		$status = rest_get_status($jobid);
+		#print STDERR "$status\n" if ( $outputLevel > 0 );
+		if ( $status eq 'ERROR' ) {
+			$errorCount++;
+		}
+		elsif ( $errorCount > 0 ) {
+			$errorCount--;
+		}
+		if (   $status eq 'RUNNING'
+			|| $status eq 'PENDING'
+			|| $status eq 'ERROR' )
+		{
+
+			# Wait before polling again.
+			sleep $checkInterval;
+		}
+	}
+	return $status;
 }
 
-sub soap_get_status {
-	my $jobid = shift;
-	my $res = $soap->getStatus(
-		SOAP::Data->name( 'jobId' => $jobid )->attr( { 'xmlns' => '' } ) );
-	my $status_str = $res->valueof('//status');
-	return $status_str;
-}
 
-
-sub soap_run {
+sub rest_run {
+	
 	my $email  = shift;
 	my $title  = shift;
 	my $params = shift;
-	if ( defined($title) ) {
-	}
+	$email = '' if(!$email);
+	
+	# Get an LWP UserAgent.
+	$ua = &rest_user_agent() unless defined($ua);
 
-	my (@paramsList) = ();
-	foreach my $key ( keys(%$params) ) {
-		if ( defined( $params->{$key} ) && $params->{$key} ne '' ) {
-			push @paramsList,
-			  SOAP::Data->name( $key => $params->{$key} )
-			  ->attr( { 'xmlns' => '' } );
+	# Clean up parameters
+	my (%tmp_params) = %{$params};
+	$tmp_params{'email'} = $email;
+	$tmp_params{'title'} = $title;
+	foreach my $param_name ( keys(%tmp_params) ) {
+		if ( !defined( $tmp_params{$param_name} ) ) {
+			delete $tmp_params{$param_name};
 		}
 	}
 
-	my $ret = $soap->run(
-		SOAP::Data->name( 'email' => $email )->attr( { 'xmlns' => '' } ),
-		SOAP::Data->name( 'title' => $title )->attr( { 'xmlns' => '' } ),	
-		SOAP::Data->name( 'parameters' => \SOAP::Data->value(@paramsList) )
-		  ->attr( { 'xmlns' => '' } )
-	);
-	return $ret->valueof('//jobId');
+	# Submit the job as a POST
+	my $url = $baseUrl . '/run';
+	my $response = $ua->post( $url, \%tmp_params );
+	
+	# Check for an error.
+	&rest_error($response);
+
+	# The job id is returned
+	my $job_id = $response->content();
+
+	return $job_id;
+}
+
+sub rest_get_status {
+	
+	my $job_id = shift;
+	
+	my $status_str = 'UNKNOWN';
+	my $url        = $baseUrl . '/status/' . $job_id;
+	$status_str = &rest_request($url);
+	
+	return $status_str;
+}
+
+sub rest_user_agent() {
+
+	# Create an LWP UserAgent for making HTTP calls.
+	my $ua = LWP::UserAgent->new();
+	# Set 'User-Agent' HTTP header to identifiy the client.
+	my $revisionNumber = 0;	
+	$revisionNumber = $1 if('$Revision: 2791 $' =~ m/(\d+)/);	
+	$ua->agent("EBI-Sample-Client/$revisionNumber ($scriptName; $OSNAME) " . $ua->agent());
+	# Configure HTTP proxy support from environment.
+	$ua->env_proxy;
+	return $ua;
 }
 
 
+sub rest_error() {
+
+	my $response = shift;
+	my $contentdata;
+	if(scalar(@_) > 0) {
+		$contentdata = shift;
+	}
+	if(!defined($contentdata) || $contentdata eq '') {
+		$contentdata = $response->content();
+	}
+	# Check for HTTP error codes
+	if ( $response->is_error ) {
+		my $error_message = '';
+		# HTML response.
+		if(	$contentdata =~ m/<h1>([^<]+)<\/h1>/ ) {
+			$error_message = $1;
+		}
+		#  XML response.
+		elsif($contentdata =~ m/<description>([^<]+)<\/description>/) {
+			$error_message = $1;
+		}
+		die 'http status: ' . $response->code . ' ' . $response->message . '  ' . $error_message;
+	}
+	
+}
 
 
+sub rest_request {
+	
+	my $requestUrl = shift;
+	
+
+	# Get an LWP UserAgent.
+	$ua = &rest_user_agent() unless defined($ua);
+	# Available HTTP compression methods.
+	my $can_accept;
+	eval {
+	    $can_accept = HTTP::Message::decodable();
+	};
+	$can_accept = '' unless defined($can_accept);
+	# Perform the request
+	my $response = $ua->get($requestUrl,
+		'Accept-Encoding' => $can_accept, # HTTP compression.
+	);
+	
+	# Unpack possibly compressed response.
+	my $retVal;
+	if ( defined($can_accept) && $can_accept ne '') {
+	    $retVal = $response->decoded_content();
+	}
+	# If unable to decode use orginal content.
+	$retVal = $response->content() unless defined($retVal);
+	# Check for an error.
+	&rest_error($response, $retVal);
+
+	# Return the response data
+	return $retVal;
+}
 
 
+sub rest_get_result {
+	
+	my $job_id = shift;
+	my $type   = shift;
 
-
-
-
+	my $url    = $baseUrl . '/result/' . $job_id . '/' . $type;
+	my $result = &rest_request($url);
+	
+	return $result;
+}
