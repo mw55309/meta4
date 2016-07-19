@@ -48,14 +48,17 @@ $sth->execute;
 # get the whole result set as an array
 my @data = $sth->fetchrow_array;
 
+# get rid of trailing stars
+$data[2] =~ s/\*$//;
+
 # WSDL URL for service
-my $WSDL = 'http://www.ebi.ac.uk/Tools/services/soap/iprscan?wsdl';
+my $WSDL = 'http://www.ebi.ac.uk/Tools/services/soap/iprscan5?wsdl';
 
 # Default parameter values 
 my %tool_params = ();
 
 # set the end-point and name space
-my $serviceEndpoint  = "http://www.ebi.ac.uk/Tools/services/soap/iprscan";
+my $serviceEndpoint  = "http://www.ebi.ac.uk/Tools/services/soap/iprscan5";
 my $serviceNamespace = "http://soap.jdispatcher.ebi.ac.uk";
 
 # Create a service proxy from the WSDL. 
@@ -78,17 +81,18 @@ while ( $jobStatus eq 'PENDING' || $jobStatus eq 'RUNNING' ) {
 }
 
 # get the text-result
-my $txt = &soap_get_result( $jobid, "txt" );
+my $txt = &soap_get_result( $jobid, "tsv" );
 
 # if there actually is some text (i.e. if there is a result
 if ($txt =~ m/\S+/) {
 
 	# get the PNG image
-	my $png =  &soap_get_result( $jobid, "visual-png" );
-	$png = encode_base64($png);
+	my $svg =  &soap_get_result( $jobid, "svg" );
+	#$png = encode_base64($png);
 
 	# print it out directly to the browser
-	print "<img src=\"data:image/png;base64,$png\">\n";
+	#print "<img src=\"data:image/png;base64,$png\">\n";
+	print "$svg\n";
 	print "<pre>$txt</pre>\n";
 } else {
 	print "<pre>No InterProScan hits</pre>\n";
